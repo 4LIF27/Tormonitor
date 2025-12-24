@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>B313 - MONITORING</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Icons -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            bg: '#0f1115',
+            card: '#1a1d24',
+            border: '#2a2e39'
+          }
+        }
+      }
+    }
+  </script>
+</head>
+
+<body class="bg-bg text-gray-200 font-sans">
+
+<header class="bg-[#12151c] text-center font-bold py-3 text-lg">
+  B313 - MONITORING
+</header>
+
+<main class="p-4 pb-24 space-y-4">
+
+<!-- ================= OVERVIEW ================= -->
+<section id="overview" class="section block space-y-4">
+
+  <div class="bg-card rounded-2xl p-4 shadow-lg">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="font-semibold text-sm">Dashboard OvervieW</h2>
+      <button onclick="loadStatus()"
+        class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg text-xs">
+        ⟳ Refresh
+      </button>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4 text-center">
+      <div><p class="text-xs text-gray-400">Signal</p><p id="signal" class="text-2xl font-bold">--%</p><span id="signal_status" class="text-xs"></span></div>
+      <div><p class="text-xs text-gray-400">SINR</p><p id="sinr" class="text-2xl font-bold">-- dB</p><span id="sinr_status" class="text-xs"></span></div>
+      <div><p class="text-xs text-gray-400">RSRQ</p><p id="rsrq" class="text-2xl font-bold">--</p><span id="rsrq_status" class="text-xs"></span></div>
+      <div><p class="text-xs text-gray-400">RSSI</p><p id="rssi" class="text-2xl font-bold">--</p><span id="rssi_status" class="text-xs"></span></div>
+      <div class="col-span-2"><p class="text-xs text-gray-400">CQI</p><p id="cqi" class="text-2xl font-bold">--</p><span id="cqi_status" class="text-xs"></span></div>
+    </div>
+  </div>
+
+  <div class="bg-card rounded-2xl p-4 shadow-lg">
+    <h2 class="font-semibold text-sm mb-3">NETWORK & SYSTEM INFO</h2>
+    <div class="grid grid-cols-2 gap-3 text-sm">
+      <div><p class="text-xs text-gray-400">Band</p><p id="band">-</p></div>
+      <div><p class="text-xs text-gray-400">Bandwidth</p><p id="bw">-</p></div>
+      <div><p class="text-xs text-gray-400">Cell ID</p><p id="cellid">-</p></div>
+      <div><p class="text-xs text-gray-400">eNodeB</p><p id="enb">-</p></div>
+      <div><p class="text-xs text-gray-400">PCI</p><p id="pci">-</p></div>
+      <div><p class="text-xs text-gray-400">TAC</p><p id="tac">-</p></div>
+      <div><p class="text-xs text-gray-400">CPU</p><p id="cpu">-</p></div>
+      <div><p class="text-xs text-gray-400">RAM</p><p id="ram">-</p></div>
+      <div><p class="text-xs text-gray-400">Uptime</p><p id="uptime">-</p></div>
+      <div><p class="text-xs text-gray-400">IPv4</p><p id="ipv4">-</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= KUOTA ================= -->
+<section id="quota" class="section hidden">
+  <div class="bg-card rounded-2xl p-4 shadow-lg">
+    <div class="flex justify-between items-center mb-3">
+      <h2 class="font-semibold text-sm">CEK KUOTA TRI</h2>
+      <button onclick="loadQuota()"
+        class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg text-xs">
+        ⟳ Cek
+      </button>
+    </div>
+
+    <div id="profileBox" class="text-xs text-gray-400 space-y-1 mb-4">
+      Tekan tombol <b>Cek</b> untuk mengambil data
+    </div>
+
+    <div id="paketBox" class="space-y-4"></div>
+  </div>
+</section>
+
+</main>
+
+<nav class="fixed bottom-0 left-0 right-0 bg-[#12151c] border-t border-border flex text-xs">
+  <button onclick="showTab('overview',this)"
+    class="flex-1 py-2 text-blue-500 flex flex-col items-center">
+    <span class="material-icons">dashboard</span>Overview
+  </button>
+  <button onclick="showTab('quota',this)"
+    class="flex-1 py-2 text-gray-400 flex flex-col items-center">
+    <span class="material-icons">data_usage</span>Kuota
+  </button>
+</nav>
+
+<script>
+/* ================= DOM CACHE ================= */
+const el = id => document.getElementById(id);
+const dom = {
+  signal: el("signal"), sinr: el("sinr"), rsrq: el("rsrq"),
+  rssi: el("rssi"), cqi: el("cqi"),
+  signal_status: el("signal_status"), sinr_status: el("sinr_status"),
+  rsrq_status: el("rsrq_status"), rssi_status: el("rssi_status"),
+  cqi_status: el("cqi_status"),
+  band: el("band"), bw: el("bw"), cellid: el("cellid"),
+  enb: el("enb"), pci: el("pci"), tac: el("tac"),
+  cpu: el("cpu"), ram: el("ram"),
+  uptime: el("uptime"), ipv4: el("ipv4"),
+  profileBox: el("profileBox"), paketBox: el("paketBox")
+};
+
+/* ================= UTILS ================= */
+async function fetchJSON(url){
+  const r = await fetch(url);
+  if(!r.ok) throw new Error("Network error");
+  return r.json();
+}
+
+/* ================= TAB ================= */
+function showTab(id, elBtn){
+  document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
+  el(id).classList.remove('hidden');
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('text-blue-500'));
+  elBtn.classList.add('text-blue-500');
+}
+
+/* ================= STATUS ================= */
+async function loadStatus(){
+  try{
+    const d = await fetchJSON("/api/status");
+    if(d.error) throw d;
+
+    dom.signal.textContent = d.signal + "%";
+    dom.sinr.textContent = d.sinr + " dB";
+    dom.rsrq.textContent = d.rsrq;
+    dom.rssi.textContent = d.rssi;
+    dom.cqi.textContent  = d.cqi;
+
+    dom.signal_status.textContent = d.signal_status;
+    dom.sinr_status.textContent   = d.sinr_status;
+    dom.rsrq_status.textContent   = d.rsrq_status;
+    dom.rssi_status.textContent   = d.rssi_status;
+    dom.cqi_status.textContent    = d.cqi_status;
+
+    dom.band.textContent = "B" + d.band;
+    dom.bw.textContent = d.bw + " MHz";
+    dom.cellid.textContent = d.cellid;
+    dom.enb.textContent = d.enb;
+    dom.pci.textContent = d.pci;
+    dom.tac.textContent = d.tac;
+    dom.cpu.textContent = d.cpu;
+    dom.ram.textContent = d.ram;
+    dom.uptime.textContent = d.uptime + " sec";
+    dom.ipv4.textContent = d.ipv4;
+
+  }catch{
+    dom.signal.textContent = "--";
+  }
+}
+
+/* ================= KUOTA ================= */
+async function loadQuota(){
+  dom.profileBox.textContent = "Mengambil data...";
+  dom.paketBox.textContent = "";
+
+  try{
+    const d = await fetchJSON("/api/kuota");
+    if(d.error) throw d;
+
+    dom.profileBox.innerHTML = `
+      <div><b>Nomor HP</b> : ${d.profile.msisdn}</div>
+      <div><b>Tipe</b> : ${d.profile.tipe}</div>
+      <div><b>Saldo Pulsa</b> : ${d.profile.saldo}</div>
+      <div><b>Masa Aktif</b> : sampai ${d.profile.masa_aktif}</div>
+    `;
+
+    if(!d.paket?.length){
+      dom.paketBox.innerHTML = `<div class="text-yellow-400 text-sm">Tidak ada paket aktif</div>`;
+      return;
+    }
+
+    const frag = document.createDocumentFragment();
+
+    d.paket.forEach(p => {
+      const persen = Number(p.persen) || 0;
+      const color = persen < 20 ? "bg-red-500" : persen < 50 ? "bg-yellow-400" : "bg-emerald-500";
+
+      const div = document.createElement("div");
+      div.className = "border border-border rounded-xl p-3";
+      div.innerHTML = `
+        <div class="flex justify-between text-sm mb-1">
+          <span class="font-semibold">${p.nama}</span>
+          <span>${persen}%</span>
+        </div>
+        <div class="w-full bg-border rounded-full h-2 overflow-hidden">
+          <div class="${color} h-2 rounded-full" style="width:${persen}%"></div>
+        </div>
+        <div class="text-[11px] text-gray-400 mt-1">
+          Sisa ${p.sisa} • Berlaku ${p.berlaku}
+        </div>
+      `;
+      frag.appendChild(div);
+    });
+
+    dom.paketBox.appendChild(frag);
+
+  }catch{
+    dom.profileBox.innerHTML = `<span class="text-red-400">Gagal memuat data kuota</span>`;
+  }
+}
+
+/* ================= INIT ================= */
+loadStatus();
+// optional auto refresh
+setInterval(loadStatus, 15000);
+</script>
+
+</body>
+</html>
