@@ -6,7 +6,8 @@
 ![Status](https://img.shields.io/badge/Status-Stable-success)
 
 ---
-
+![Preview](https://raw.githubusercontent.com/4LIF27/Tormonitor/refs/heads/main/1766629920640.jpg)
+![Preview](https://raw.githubusercontent.com/4LIF27/Tormonitor/refs/heads/main/1766629920640.jpg)
 ## 🇮🇩 Deskripsi (Bahasa Indonesia)
 
 **Router & Kuota Monitor API** adalah aplikasi berbasis **Flask** untuk:
